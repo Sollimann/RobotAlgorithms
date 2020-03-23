@@ -8,6 +8,8 @@ authors = ["sollimann <kristoffer.solberg@cognite.com>"]
 python = "^3.6"
 matplotlib = "^3.2.0"
 plotly = "^4.5.4"
+scipy = "^1.4.1"
+scikit-image = "^0.16.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

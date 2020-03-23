@@ -1,7 +1,7 @@
 import plotly as py
 from plotly import graph_objs as go
 
-colors = ['darkblue', 'teal']
+colors = ['red', 'red']
 
 
 class Plot(object):
@@ -87,10 +87,10 @@ class Plot(object):
                         'x1': O_i[2],
                         'y1': O_i[3],
                         'line': {
-                            'color': 'purple',
+                            'color': 'blue',
                             'width': 4,
                         },
-                        'fillcolor': 'purple',
+                        'fillcolor': 'blue',
                         'opacity': 0.70
                     },
                 )
@@ -103,7 +103,7 @@ class Plot(object):
                     i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
                     j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
                     k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-                    color='purple',
+                    color='blue',
                     opacity=0.70
                 )
                 self.data.append(obs)
@@ -125,7 +125,7 @@ class Plot(object):
                 x=x,
                 y=y,
                 line=dict(
-                    color="red",
+                    color="green",
                     width=4
                 ),
                 mode="lines"
