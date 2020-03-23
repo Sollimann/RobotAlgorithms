@@ -143,7 +143,7 @@ class Plot(object):
                 y=y,
                 z=z,
                 line=dict(
-                    color="red",
+                    color="green",
                     width=4
                 ),
                 mode="lines"

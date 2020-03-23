@@ -48,21 +48,12 @@ def findend(i, j, a, output, index):
             flagr = 0  # set the flag
             break
 
-        # pass because already processed
-        if a[m][j] == 5:
-            pass
-
         for n in range(j, y):
 
             # loop breaks where first 1 encounters
             if a[m][n] == 0:
                 flagc = 0  # set the flag
                 break
-
-            # fill rectangle elements with any
-            # number so that we can exclude
-            # next time
-            a[m][n] = 5
 
     if flagr == 0:
         output[index].append(m - 1)
@@ -101,4 +92,13 @@ def get_rectangle_coordinates(a):
                 index = index + 1
                 findend(i, j, a, output, index)
 
-    return [tuple(l) for l in output]
+    # Always make obstacles a bit larger than what they actually are
+    obstacles = []
+    for ob in output:
+        ob[0] -= 1
+        ob[2] += 1
+        ob[1] -= 1
+        ob[3] += 1
+        obstacles.append(ob)
+
+    return obstacles
