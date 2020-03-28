@@ -68,7 +68,7 @@ def dijkstra(start, goal, obstacles):
     # In the beginning, the start is the only element in our front.
     # The first element is the cost of the path from the start to the point.
     # The second element is the position (cell) of the point.
-    front = [(0.0, start)]
+    front = [(0.000001, start)]
 
     # In the beginning, no cell has been visited.
     extents = obstacles.shape
@@ -89,7 +89,7 @@ def dijkstra(start, goal, obstacles):
             continue
 
         # Now it is visited. Mark with 1.
-        visited[pos] = 1
+        visited[pos] = cost
 
         # Check if the goal has been reached.
         if pos == goal:

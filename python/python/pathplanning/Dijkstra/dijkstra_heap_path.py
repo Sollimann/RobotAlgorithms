@@ -2,6 +2,7 @@ from python.pathplanning.Dijkstra import gui
 from python.pathplanning.Dijkstra import common
 import traceback
 import numpy as np
+from heapq import heappush, heappop
 
 # The world extents in units.
 world_extents = (200, 150)
@@ -63,33 +64,43 @@ movements = [  # Direct neighbors (4N).
 ]
 
 
+def int_to_rounded_float(pos):
+    pos = (int(pos[0]), int(pos[1]))
+    pos = (float(pos[0]), float(pos[1]))
+    return pos
+
+
 def dijkstra(start, goal, obstacles):
-    """Dijkstra's algorithm. First version does not use a heap."""
+    """Dijkstra's algorithm. Fourth version also returns optimal path."""
     # In the beginning, the start is the only element in our front.
     # The first element is the cost of the path from the start to the point.
     # The second element is the position (cell) of the point.
-    front = [(0.0, start)]
+    # The third component is the position we came from when entering the tuple
+    #   to the front.
+    front = [(0.001, start, None)]
 
     # In the beginning, no cell has been visited.
     extents = obstacles.shape
     visited = np.zeros(extents, dtype=np.float32)
 
+    # Also, we use a dictionary to remember where we came from.
+    came_from = {}
+
     # While there are elements to investigate in our front.
     while front:
-        # Get smallest item and remove it from front.
-        # - Get smallest element from 'front'. Hint: min() may be useful.
-        min_cost_node = min(front)
-        # - Remove this element from 'front'. Hint: 'front' is a list.
-        front.remove(min_cost_node)
+        # Get smallest item and remove from front.
+        min_cost_node = heappop(front)
 
-        # Check if this has been visited already. Skip the rest of the loop body if visited[pos] is > 0.
-        cost, pos = min_cost_node
-        pos = (int(pos[0]), int(pos[1]))
+        # Check if this has been visited already.
+        cost, pos, previous = min_cost_node
+        pos = (round(pos[0]), round(pos[1]))
         if visited[pos] > 0:
             continue
 
-        # Now it is visited. Mark with 1.
-        visited[pos] = 1
+        # Now it is visited. Mark with cost.
+        visited[pos] = cost
+        # Also remember that we came from previous when we marked pos.
+        came_from[pos] = previous
 
         # Check if the goal has been reached.
         if pos == goal:
@@ -97,6 +108,7 @@ def dijkstra(start, goal, obstacles):
 
         new_x = None
         new_y = None
+
         # Check all neighbors.
         for dx, dy, deltacost in movements:
             # Determine new position and check bounds.
@@ -105,17 +117,33 @@ def dijkstra(start, goal, obstacles):
             new_y = pos[1] + dy
             # - Check that new_x is >= 0 and < extents[0], similarly for new_y.
             # - If not, skip the remaining part of this loop.
-            if new_x < 0 or new_x >= extents[0] or new_y < 0 or new_y >= extents[1]:
+            if (new_x < 0 or new_x >= extents[0] or new_y < 0 or new_y >= extents[1]):
                 continue
 
             # Add to front if: not visited before and no obstacle.
+            # When push'ing the new tuple to the heap, make
+            # sure it is a 3-tuple, with the last component of the tuple
+            # being the position 'we came from' (which is 'pos').
             new_pos = (new_x, new_y)
             # If visited is 0 and obstacles is not 255 (both at new_pos), then:
             # append the tuple (cost + deltacost, new_pos) to the front.
-            if not visited[new_pos] and obstacles[new_pos] != 255:
-                front.append((cost + deltacost, new_pos))
+            if (not visited[new_pos] and obstacles[new_pos] != 255):
+                # Use heappush(). This will move the new tuple to the correct
+                # location in the heap.
+                heappush(front, (cost + deltacost, new_pos, pos))
 
-    return [], visited
+    # Make sure to include the following code, which 'unwinds'
+    # the path from goal to start, using the came_from dictionary.
+
+    # Reconstruct path, starting from goal.
+    path = []
+    if pos == goal:  # If we reached the goal, unwind backwards.
+        while pos:
+            path.append(pos)
+            pos = came_from[pos]
+        path.reverse()  # Reverse so that path is from start to goal.
+
+    return (path, visited)
 
 
 # Main program.
@@ -137,7 +165,9 @@ if __name__ == '__main__':
 
     # Init GUI.
     gui = gui.GUI(world_extents, 4, callbacks,
-                  buttons, "on", "Simple Dijkstra Algorithm.")
+                  buttons, "on",
+                  "Simple Dijkstra Algorithm (finally shows the optimal path "
+                  "from start to goal).")
 
     # Start GUI main loop.
     gui.run()

@@ -250,11 +250,11 @@ class GUI():
     # Unfortunately, since these are "redirected" callbacks, we have to back
     # convert to display coordinates.
     def place_start(self, pos):
-        pos = (int(pos[0]), int(pos[1]))
+        #pos = (int(pos[0]), int(pos[1]))
         self.place_start_goal(0, pos)
 
     def drag_start(self, pos):
-        pos = (int(pos[0]), int(pos[1]))
+        #pos = (int(pos[0]), int(pos[1]))
         self.drag_start_goal(0, pos)
 
     def place_goal(self, pos):
@@ -262,16 +262,16 @@ class GUI():
         self.place_start_goal(1, pos)
 
     def drag_goal(self, pos):
-        pos = (int(pos[0]), int(pos[1]))
+        #pos = (int(pos[0]), int(pos[1]))
         self.drag_start_goal(1, pos)
 
     def place_start_goal(self, start_goal, pos):
-        pos = (int(pos[0]), int(pos[1]))
+        #pos = (int(pos[0]), int(pos[1]))
         self.set_start_goal(start_goal, self.to_display(pos), 0.0)
 
     def drag_start_goal(self, start_goal, pos):
-        start_goal = (int(start_goal[0]), int(start_goal[1]))
-        pos = (int(pos[0]), int(pos[1]))
+        #start_goal = (int(start_goal[0]), int(start_goal[1]))
+        #pos = (int(pos[0]), int(pos[1]))
         x, y = self.to_display(pos)
         old_x, old_y = self.start_goal_coordinates[start_goal][0:2]
         dx = x - old_x
@@ -280,7 +280,7 @@ class GUI():
         self.set_start_goal(start_goal, (old_x, old_y), theta)
 
     def set_start_goal(self, start_goal, pos, theta):
-        pos = (int(pos[0]), int(pos[1]))
+        #pos = (int(pos[0]), int(pos[1]))
         x, y = pos
         if not (0 <= x < self.extents[0] and 0 <= y < self.extents[1]):
             return

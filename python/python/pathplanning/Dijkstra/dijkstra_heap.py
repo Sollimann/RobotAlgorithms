@@ -2,6 +2,7 @@ from python.pathplanning.Dijkstra import gui
 from python.pathplanning.Dijkstra import common
 import traceback
 import numpy as np
+from heapq import heappush, heappop
 
 # The world extents in units.
 world_extents = (200, 150)
@@ -68,7 +69,7 @@ def dijkstra(start, goal, obstacles):
     # In the beginning, the start is the only element in our front.
     # The first element is the cost of the path from the start to the point.
     # The second element is the position (cell) of the point.
-    front = [(0.0, start)]
+    front = [(0.000001, start)]
 
     # In the beginning, no cell has been visited.
     extents = obstacles.shape
@@ -77,10 +78,7 @@ def dijkstra(start, goal, obstacles):
     # While there are elements to investigate in our front.
     while front:
         # Get smallest item and remove it from front.
-        # - Get smallest element from 'front'. Hint: min() may be useful.
-        min_cost_node = min(front)
-        # - Remove this element from 'front'. Hint: 'front' is a list.
-        front.remove(min_cost_node)
+        min_cost_node = heappop(front)
 
         # Check if this has been visited already. Skip the rest of the loop body if visited[pos] is > 0.
         cost, pos = min_cost_node
@@ -89,7 +87,7 @@ def dijkstra(start, goal, obstacles):
             continue
 
         # Now it is visited. Mark with 1.
-        visited[pos] = 1
+        visited[pos] = cost
 
         # Check if the goal has been reached.
         if pos == goal:
@@ -113,7 +111,7 @@ def dijkstra(start, goal, obstacles):
             # If visited is 0 and obstacles is not 255 (both at new_pos), then:
             # append the tuple (cost + deltacost, new_pos) to the front.
             if not visited[new_pos] and obstacles[new_pos] != 255:
-                front.append((cost + deltacost, new_pos))
+                heappush(front, (cost + deltacost, new_pos))
 
     return [], visited
 

@@ -4,7 +4,7 @@
 import numpy as np
 
 
-def set_obstacle(obstacle_array, pos: (int, int), on):
+def set_obstacle(obstacle_array, pos, on):
     """Draw an obstacle (2N+1 x 2N+1) box into numpy obstacle_array."""
     N = 2  # Box size will be 2N+1
     # Handle borders.
