@@ -9,7 +9,7 @@ def set_obstacle(obstacle_array, pos, on):
     N = 2  # Box size will be 2N+1
     # Handle borders.
     extents = obstacle_array.shape
-    pos = (int(pos[0]), int(pos[1]))
+    pos = (round(pos[0]), round(pos[1]))
     x, y = pos
     l = max(0, x - N)
     r = min(extents[0] - 1, x + N)
