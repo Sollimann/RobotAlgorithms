@@ -5,12 +5,12 @@ import traceback
 import scipy.ndimage
 
 # The world extents in units.
-world_extents = (200, 150)
+map_extents = (200, 150)
 
 # The obstacle map.
 # Obstacle = 255, free space = 0.
 # Potential field = any value between 1 and 254
-occupancy_grid_map = np.zeros(world_extents, dtype=np.uint8)
+occupancy_grid_map = np.zeros(map_extents, dtype=np.uint8)
 
 # The array of visited cells during search.
 visited_nodes = None
@@ -18,7 +18,11 @@ visited_nodes = None
 # The optimal path between start and goal. This is a list of (x,y) pairs.
 optimal_path = []
 
-plan = AstarPotentialField()
+# Switch which determines if visited nodes shall be drawn in the GUI.
+show_visited_nodes = True
+
+# Switch which determines if potential function should be used.
+use_potential_function = True
 
 
 # Functions for GUI functionality.
@@ -36,18 +40,8 @@ def remove_obstacle(pos):
 
 def clear_obstacles():
     global occupancy_grid_map
-    occupancy_grid_map = np.zeros(world_extents, dtype=np.uint8)
+    occupancy_grid_map = np.zeros(map_extents, dtype=np.uint8)
     update_callback()
-
-
-"""
-     Potential field specific
-"""
-# Switch which determines if visited nodes shall be drawn in the GUI.
-show_visited_nodes = True
-
-# Switch which determines if potential function should be used.
-use_potential_function = True
 
 
 def toggle_visited_nodes():
@@ -63,31 +57,16 @@ def toggle_potential_function():
     update_callback()
 
 
-def apply_distance_transform():
-    global occupancy_grid_map
-    if use_potential_function and np.max(occupancy_grid_map) == 255:
-        # Compute distance transform.
-        dist_transform = 255 - np.minimum(
-            16 * scipy.ndimage.morphology.distance_transform_edt(
-                255 - occupancy_grid_map), 255)
-        m = max(np.max(dist_transform), 1)  # Prevent m==0.
-        occupancy_grid_map = np.uint8((dist_transform * 255) / m)
-    else:
-        # Keep 255 values only (set all other to 0).
-        occupancy_grid_map = (occupancy_grid_map == 255) * np.uint8(255)
-
-
 def update_callback(pos=None):
     # First apply distance transform to occupancy_grid_map.
-    apply_distance_transform()  # potential field
+
     # Call path planning algorithm.
     start, goal = gui.get_start_goal()
     if not (start == None or goal == None):
         global optimal_path
         global visited_nodes
         try:
-            optimal_path, visited_nodes = plan.astar(start=start, goal=goal, occupancy_grid_map=occupancy_grid_map,
-                                                     exploration_setting='8N', use_potential_field=True)
+            optimal_path, visited_nodes = plan.ogrid_cb(start, goal, occupancy_grid_map)
         except Exception as e:
             print(traceback.print_exc())
     # Draw new background.
@@ -97,6 +76,8 @@ def update_callback(pos=None):
 
 # Main program.
 if __name__ == '__main__':
+    plan = AstarPotentialField(exploration_setting='8N', use_potential_field=True)
+
     # Link functions to buttons.
     callbacks = {"update": update_callback,
                  "button_1_press": add_obstacle,
@@ -111,14 +92,12 @@ if __name__ == '__main__':
                  }
     # Extra buttons.
     buttons = [("Clear", clear_obstacles),
-               ("Use Potential Function", toggle_potential_function),
                ("Show Visited", toggle_visited_nodes)]
 
     # Init GUI.
-    gui = GUI(world_extents, 4, callbacks,
+    gui = GUI(map_extents, 4, callbacks,
               buttons, "on",
-              "Simple Dijkstra Algorithm (finally shows the optimal path "
-              "from start to goal).")
+              "Astar Algorithm with potential field")
 
     # Start GUI main loop.
     gui.run()

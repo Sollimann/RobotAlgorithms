@@ -9,6 +9,27 @@ from heapq import heappush, heappop
 
 class AstarPotentialField:
 
+    def __init__(self, use_potential_field=True, exploration_setting='8N'):
+        """
+        :param use_potential_field:
+        :param exploration_setting:
+        """
+        self.use_potential_field = use_potential_field
+        self.exploration_setting = exploration_setting
+
+    def ogrid_cb(self, start: (int, int), goal: (int, int), map):
+        """
+        :param start:
+        :param goal:
+        :param map:
+        :return:
+        """
+        optimal_path, visited_nodes = AstarPotentialField.astar(start=start, goal=goal, occupancy_grid_map=map,
+                                                                exploration_setting=self.exploration_setting,
+                                                                use_potential_field=self.use_potential_field)
+
+        return optimal_path, visited_nodes
+
     @staticmethod
     def apply_obstacle_potential_field(map, potential_field: bool):
         if potential_field and np.max(map) == 255:
@@ -41,8 +62,8 @@ class AstarPotentialField:
         stack = [(0.001 + distance(start, goal), 0.001, start, None)]
 
         # in the beginning, no cell has been visited
-        #occupancy_grid_map = AstarPotentialField.apply_obstacle_potential_field(map=occupancy_grid_map,
-        #                                                                        potential_field=use_potential_field)
+        occupancy_grid_map = AstarPotentialField.apply_obstacle_potential_field(map=occupancy_grid_map,
+                                                                                potential_field=use_potential_field)
 
         extents = occupancy_grid_map.shape
         visited = np.zeros(extents, dtype=np.float32)  # 32 bit float for cost
@@ -112,22 +133,3 @@ class AstarPotentialField:
             path.reverse()  # reverse so that path is from start to goal
 
         return path, visited
-
-
-if __name__ == '__main__':
-    start = (1, 1)
-    goal = (100, 100)
-    map_extent = (200, 200)
-    # we initialize all as zero (unexplored)
-    occupancy_grid_map = np.zeros(map_extent, dtype=np.uint8)  # 8 bit int values in range 0 - 255 occupancy grid
-    plan = AstarPotentialField()
-    global optimal_path
-    global visited_nodes
-
-    try:
-
-        optimal_path, visited_nodes = plan.astar(start=start, goal=goal, occupancy_grid_map=occupancy_grid_map,
-                                                 exploration_setting='8N', use_potential_field=True)
-        print(len(optimal_path))
-    except Exception as e:
-        print(traceback.print_exc())
