@@ -1,5 +1,10 @@
 from ..utilities.geometry import dist_between_points
 
+"""
+A heuristic function, also called simply a heuristic,
+is a function that ranks alternatives in search algorithms
+at each branching step based on available information to decide which branch to follow.
+"""
 
 def cost_to_go(a: tuple, b: tuple) -> float:
     """
