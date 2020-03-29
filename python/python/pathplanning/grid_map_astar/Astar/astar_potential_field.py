@@ -11,24 +11,26 @@ class AstarPotentialField:
 
     def __init__(self, use_potential_field=True, exploration_setting='8N'):
         """
-        :param use_potential_field:
-        :param exploration_setting:
+        :param use_potential_field: 'True' if you want repulsive potential field around obstacles
+        :param exploration_setting: explore with 4-connectivity movements or 8-connectivity movements
         """
         self.use_potential_field = use_potential_field
         self.exploration_setting = exploration_setting
 
     def ogrid_cb(self, start: (int, int), goal: (int, int), map):
         """
-        :param start:
-        :param goal:
-        :param map:
-        :return:
+        A callback function that gets the latest status of the navigation,
+        and returns an optimal path using potential field Astar search algorithm
+        :param start: (int, int) the node at which the search starts
+        :param goal: (int, int) the node at which the search ends
+        :param map: A 2D occupancy grid map with traversal space (0) and non traversal space (255)
+        :return: A optimal path [(x,y),...] and the global cost map [(x,y, cost),...]
         """
-        optimal_path, visited_nodes = AstarPotentialField.astar(start=start, goal=goal, occupancy_grid_map=map,
-                                                                exploration_setting=self.exploration_setting,
-                                                                use_potential_field=self.use_potential_field)
+        optimal_path, global_cost_map = AstarPotentialField.astar(start=start, goal=goal, occupancy_grid_map=map,
+                                                                  exploration_setting=self.exploration_setting,
+                                                                  use_potential_field=self.use_potential_field)
 
-        return optimal_path, visited_nodes
+        return optimal_path, global_cost_map
 
     @staticmethod
     def apply_obstacle_potential_field(map, potential_field: bool):
@@ -47,12 +49,12 @@ class AstarPotentialField:
     def astar(start: (int, int), goal: (int, int), occupancy_grid_map,
               exploration_setting='8N', use_potential_field=True):
         """
-        :param occupancy_grid_map:
-        :param use_potential_field:
-        :param exploration_setting:
-        :param start:
-        :param goal:
-        :return:
+        :param occupancy_grid_map: A 2D occupancy grid map with traversal space (0) and non traversal space (255)
+        :param use_potential_field: 'True' if you want repulsive potential field around obstacles
+        :param exploration_setting: explore with 4-connectivity movements or 8-connectivity movements
+        :param start: (int, int) the node at which the search starts
+        :param goal: (int, int) the node at which the search ends
+        :return: A optimal path [(x,y),...] and the global cost map [(x,y, cost),...]
         """
 
         # the first element is the total cost astar = dijkstra optimal to a point + greedy estimate to goal
@@ -61,12 +63,12 @@ class AstarPotentialField:
         # the fourth component is the position we came from when entering the (initialized as None)
         stack = [(0.001 + distance(start, goal), 0.001, start, None)]
 
-        # in the beginning, no cell has been visited
+        # If use_potential_field is True, at repulsive potential field to occupied cells
         occupancy_grid_map = AstarPotentialField.apply_obstacle_potential_field(map=occupancy_grid_map,
                                                                                 potential_field=use_potential_field)
 
         extents = occupancy_grid_map.shape
-        visited = np.zeros(extents, dtype=np.float32)  # 32 bit float for cost
+        global_cost_map = np.zeros(extents, dtype=np.float32)  # 32 bit float for cost
 
         # Also, we use a dictionary to remember where we came from
         reconstructed_path = {}
@@ -80,12 +82,12 @@ class AstarPotentialField:
 
             # if node has already been visited, the proceed to next element
             # in the stack
-            if visited[pos] > 0:
+            if global_cost_map[pos] > 0:
                 continue
 
             # now that the node has been visited. Mark with cost
             # also mark the node we came from
-            visited[pos] = cost
+            global_cost_map[pos] = cost
             reconstructed_path[pos] = previous
 
             # check if goal has yet been reached
@@ -115,7 +117,7 @@ class AstarPotentialField:
 
                 # if visited is 0 (unexplored) and it does not hit cost 255 (obstacle), then:
                 # append the tuple to the stack, so we can explore this nodes neighbor in next iteration
-                if not visited[new_pos] and occupancy_grid_map[new_pos] != 255:
+                if not global_cost_map[new_pos] and occupancy_grid_map[new_pos] != 255:
                     new_cost = cost + deltacost + occupancy_grid_map[new_pos] / 64.0
                     new_total_cost = new_cost + distance(new_pos, goal)
 
@@ -131,5 +133,4 @@ class AstarPotentialField:
                 path.append(pos)
                 pos = reconstructed_path[pos]
             path.reverse()  # reverse so that path is from start to goal
-
-        return path, visited
+        return path, global_cost_map

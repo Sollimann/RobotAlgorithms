@@ -46,7 +46,7 @@ def get_movements_4n() -> List:
 
 def get_movements_8n() -> List:
     """
-    get all possible 4-connectivity movements.
+    get all possible 8-connectivity movements.
     :return: list of movements with cost [(dx, dy, movement_cost)]
     """
     s2 = math.sqrt(2)
