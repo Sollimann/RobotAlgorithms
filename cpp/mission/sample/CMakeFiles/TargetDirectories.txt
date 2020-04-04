@@ -1,0 +1,3 @@
+/home/kristoffer/Hobby/RobotAlgorithms/cpp/mission/sample/CMakeFiles/rebuild_cache.dir
+/home/kristoffer/Hobby/RobotAlgorithms/cpp/mission/sample/CMakeFiles/sample.dir
+/home/kristoffer/Hobby/RobotAlgorithms/cpp/mission/sample/CMakeFiles/edit_cache.dir
