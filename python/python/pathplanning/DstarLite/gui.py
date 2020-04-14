@@ -1,20 +1,6 @@
 import pygame
-from grid import OccupancyGridMap
-
-# Define some colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
-GRAY1 = (145, 145, 102)
-GRAY2 = (77, 77, 51)
-BLUE = (0, 0, 80)
-
-colors = {
-    0: WHITE,
-    1: GREEN,
-    255: GRAY1
-}
+from grid import GlobalOccupancyGridMap
+from utils import *
 
 
 class Animation:
@@ -45,19 +31,18 @@ class Animation:
         # create occupancy grid map
         """
         set initial values for the map occupancy grid
-        |----------> x, column
-        |       (x=2, y=0)
+        |----------> y, column
+        |           (x=0,y=2)
         |
-        | (x=0, y=2)
-        V
-        y, row
+        V (x=2, y=0)
+        x, row
         """
-        self.grid_map = OccupancyGridMap(x_dim=x_dim,
-                                         y_dim=y_dim,
-                                         start_x=0,
-                                         start_y=0,
-                                         goal_x=x_dim - 2,
-                                         goal_y=y_dim - 2)
+        self.grid_map = GlobalOccupancyGridMap(x_dim=x_dim,
+                                               y_dim=y_dim,
+                                               start_x=0,
+                                               start_y=0,
+                                               goal_x=x_dim - 2,
+                                               goal_y=y_dim - 2)
 
         # Set title of screen
         pygame.display.set_caption(title)
@@ -91,6 +76,7 @@ class Animation:
                     print("backspace automates the press space")
                     cont = True
 
+                # set obstacle by holding left-click
                 elif pygame.mouse.get_pressed()[0]:
                     # User clicks the mouse. Get the position
                     (col, row) = pygame.mouse.get_pos()
@@ -106,6 +92,22 @@ class Animation:
                     if not self.grid_map.is_occupied(grid_cell):
                         self.grid_map.set_obstacle(grid_cell)
 
+                # remove obstacle by holding right-click
+                elif pygame.mouse.get_pressed()[2]:
+                    # User clicks the mouse. Get the position
+                    (col, row) = pygame.mouse.get_pos()
+
+                    # change the x/y screen coordinates to grid coordinates
+                    x = row // (self.height + self.margin)
+                    y = col // (self.width + self.margin)
+
+                    # turn pos into cell
+                    grid_cell = (x, y)
+
+                    # set the location in the grid map
+                    if self.grid_map.is_occupied(grid_cell):
+                        self.grid_map.remove_obstacle(grid_cell)
+
             # set the screen background
             self.screen.fill(BLACK)
 
@@ -120,10 +122,10 @@ class Animation:
                                       self.height])
 
             # fill in the goal cell with green
-            pygame.draw.rect(self.screen, GREEN, [(self.margin + self.width) * self.grid_map.goal[1] + self.margin,
-                                                  (self.margin + self.height) * self.grid_map.goal[0] + self.margin,
-                                                  self.width,
-                                                  self.height])
+            pygame.draw.rect(self.screen, GOAL, [(self.margin + self.width) * self.grid_map.goal[1] + self.margin,
+                                                 (self.margin + self.height) * self.grid_map.goal[0] + self.margin,
+                                                 self.width,
+                                                 self.height])
 
             # draw a moving robot, based on current coordinates
             robot_center = [round(self.grid_map.current[1] * (self.width + self.margin) + self.width / 2) + self.margin,
@@ -131,13 +133,14 @@ class Animation:
                                 self.grid_map.current[0] * (self.height + self.margin) + self.height / 2) + self.margin]
 
             # draw robot position as red circle
-            pygame.draw.circle(self.screen, RED, robot_center, round(self.width / 2) - 2)
+            pygame.draw.circle(self.screen, START, robot_center, round(self.width / 2) - 2)
 
             # draw robot local grid map (viewing range)
-            pygame.draw.rect(self.screen, BLUE, [robot_center[1] - self.viewing_range * (self.width + self.margin),
-                                                 robot_center[0] - self.viewing_range * (self.height + self.margin),
-                                                 2 * self.viewing_range * (self.width + self.margin),
-                                                 2 * self.viewing_range * (self.height + self.margin)], 2)
+            pygame.draw.rect(self.screen, LOCAL_GRID,
+                             [robot_center[1] - self.viewing_range * (self.width + self.margin),
+                              robot_center[0] - self.viewing_range * (self.height + self.margin),
+                              2 * self.viewing_range * (self.width + self.margin),
+                              2 * self.viewing_range * (self.height + self.margin)], 2)
 
             # set game tick
             self.clock.tick(20)
