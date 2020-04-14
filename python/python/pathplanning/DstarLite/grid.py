@@ -6,7 +6,7 @@ UNOCCUPIED = 0
 
 
 class OccupancyGridMap:
-    def __init__(self, x_dim, y_dim, start_x: int, start_y: int, goal_x: int, goal_y: int, exploration_setting='8N'):
+    def __init__(self, x_dim, y_dim, exploration_setting='8N'):
         """
         set initial values for the map occupancy grid
         |----------> y, column
@@ -17,10 +17,6 @@ class OccupancyGridMap:
         :param x_dim: dimension in the x direction
         :param y_dim: dimension in the y direction
         """
-        # set start, current and goal
-        self.start = (start_x, start_y)
-        self.current = (start_x, start_y)
-        self.goal = (goal_x, goal_y)
         self.x_dim = x_dim
         self.y_dim = y_dim
 

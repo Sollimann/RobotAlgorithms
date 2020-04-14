@@ -17,13 +17,6 @@ if __name__ == '__main__':
     start = (1, 1)
     goal = (90, 70)
 
-    estimated_world_occupancy_grid = OccupancyGridMap(x_dim=x_dim,
-                                                y_dim=y_dim,
-                                                start_x=start[0],
-                                                start_y=start[1],
-                                                goal_x=goal[0],
-                                                goal_y=goal[1])
-
     gui = Animation(title="D* Lite Path Planning",
                     width=10,
                     height=10,
@@ -34,7 +27,7 @@ if __name__ == '__main__':
 
     ground_truth_world_occupancy_grid = gui.world.occupancy_grid_map
 
-    dstar = DstarLite(graph=estimated_world_occupancy_grid,
+    dstar = DstarLite(slam_map=ground_truth_world_occupancy_grid,
                       start=start,
                       goal=goal,
                       view_range=2)
