@@ -3,21 +3,6 @@ import math
 import heapq
 from typing import List
 
-# Define some colors
-BLACK = (0, 0, 0)  # BLACK
-UNOCCUPIED = (255, 255, 255)  # WHITE
-GOAL = (0, 255, 0)  # GREEN
-START = (255, 0, 0)  # RED
-GRAY1 = (145, 145, 102)  # GRAY1
-OBSTACLE = (77, 77, 51)  # GRAY2
-LOCAL_GRID = (0, 0, 80)  # BLUE
-
-colors = {
-    0: UNOCCUPIED,
-    1: GOAL,
-    255: OBSTACLE
-}
-
 
 def distance(p: (int, int), q: (int, int)) -> float:
     """
