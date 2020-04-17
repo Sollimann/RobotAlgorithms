@@ -15,7 +15,7 @@ if __name__ == '__main__':
     x_dim = 100
     y_dim = 80
     start = (1, 1)
-    goal = (90, 70)
+    goal = (50, 50)
 
     gui = Animation(title="D* Lite Path Planning",
                     width=10,
@@ -25,12 +25,20 @@ if __name__ == '__main__':
                     y_dim=y_dim,
                     viewing_range=2)
 
-    ground_truth_world_occupancy_grid = gui.world.occupancy_grid_map
+    ground_truth_world = gui.world
 
-    dstar = DstarLite(slam_map=ground_truth_world_occupancy_grid,
-                      start=start,
-                      goal=goal,
+    dstar = DstarLite(world=ground_truth_world,
+                      s_start=start,
+                      s_goal=goal,
                       view_range=2)
 
     while not gui.done:
-        gui.run_game()
+
+        # update the map
+
+
+        # compute new path
+        path = [p for p, o in dstar.move_and_rescan()]
+
+        # drive gui
+        gui.run_game(path=path)

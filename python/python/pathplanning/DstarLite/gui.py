@@ -1,6 +1,7 @@
 import pygame
+import time
 from grid import OccupancyGridMap
-
+from typing import List
 
 # Define some colors
 BLACK = (0, 0, 0)  # BLACK
@@ -26,6 +27,8 @@ class Animation:
                  margin=0,
                  x_dim=100,
                  y_dim=50,
+                 start=(0, 0),
+                 goal=(50, 50),
                  viewing_range=3):
 
         self.width = width
@@ -33,6 +36,9 @@ class Animation:
         self.margin = margin
         self.x_dim = x_dim
         self.y_dim = y_dim
+        self.start = start
+        self.current = start
+        self.goal = goal
         self.viewing_range = viewing_range
 
         pygame.init()
@@ -53,11 +59,7 @@ class Animation:
         x, row
         """
         self.world = OccupancyGridMap(x_dim=x_dim,
-                                      y_dim=y_dim,
-                                      start_x=0,
-                                      start_y=0,
-                                      goal_x=x_dim - 2,
-                                      goal_y=y_dim - 2)
+                                      y_dim=y_dim)
 
         # Set title of screen
         pygame.display.set_caption(title)
@@ -71,12 +73,27 @@ class Animation:
         # used to manage how fast the screen updates
         self.clock = pygame.time.Clock()
 
-    def draw_path(self):
-        pass
+    def get_position(self):
+        return self.current
 
-    def run_game(self):
+    def set_position(self, pos: (int, int)):
+        self.current = pos
+
+    def get_goal(self):
+        return self.goal
+
+    def set_goal(self, goal: (int, int)):
+        self.goal = goal
+
+    def set_start(self, start: (int, int)):
+        self.start = start
+
+    def run_game(self, path=None):
+        if path is None:
+            path = []
+
         cont = False
-
+        time.sleep(1)
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:  # if user clicked close
@@ -103,7 +120,7 @@ class Animation:
                 grid_cell = (x, y)
 
                 # set the location in the grid map
-                if not self.world.is_occupied(grid_cell):
+                if self.world.is_unoccupied(grid_cell):
                     self.world.set_obstacle(grid_cell)
 
             # remove obstacle by holding right-click
@@ -119,7 +136,7 @@ class Animation:
                 grid_cell = (x, y)
 
                 # set the location in the grid map
-                if self.world.is_occupied(grid_cell):
+                if not self.world.is_unoccupied(grid_cell):
                     self.world.remove_obstacle(grid_cell)
 
         # set the screen background
@@ -136,15 +153,15 @@ class Animation:
                                   self.height])
 
         # fill in the goal cell with green
-        pygame.draw.rect(self.screen, GOAL, [(self.margin + self.width) * self.world.goal[1] + self.margin,
-                                             (self.margin + self.height) * self.world.goal[0] + self.margin,
+        pygame.draw.rect(self.screen, GOAL, [(self.margin + self.width) * self.goal[1] + self.margin,
+                                             (self.margin + self.height) * self.goal[0] + self.margin,
                                              self.width,
                                              self.height])
 
         # draw a moving robot, based on current coordinates
-        robot_center = [round(self.world.current[1] * (self.width + self.margin) + self.width / 2) + self.margin,
+        robot_center = [round(self.current[1] * (self.width + self.margin) + self.width / 2) + self.margin,
                         round(
-                            self.world.current[0] * (self.height + self.margin) + self.height / 2) + self.margin]
+                            self.current[0] * (self.height + self.margin) + self.height / 2) + self.margin]
 
         # draw robot position as red circle
         pygame.draw.circle(self.screen, START, robot_center, round(self.width / 2) - 2)
