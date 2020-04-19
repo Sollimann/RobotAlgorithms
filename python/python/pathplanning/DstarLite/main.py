@@ -14,8 +14,8 @@ if __name__ == '__main__':
     """
     x_dim = 100
     y_dim = 80
-    start = (1, 1)
-    goal = (50, 50)
+    start = (10, 10)
+    goal = (20, 70)
 
     gui = Animation(title="D* Lite Path Planning",
                     width=10,
@@ -23,22 +23,39 @@ if __name__ == '__main__':
                     margin=0,
                     x_dim=x_dim,
                     y_dim=y_dim,
-                    viewing_range=2)
+                    start=start,
+                    goal=goal,
+                    viewing_range=6)
 
     ground_truth_world = gui.world
+
+    new_position = start
+    last_position = start
+    new_observation = None
+    type = OBSTACLE
 
     dstar = DstarLite(world=ground_truth_world,
                       s_start=start,
                       s_goal=goal,
-                      view_range=2)
+                      view_range=6)
+    path = [p for p, o in dstar.move_and_rescan(position=new_position)]
 
     while not gui.done:
-
         # update the map
-
-
-        # compute new path
-        path = [p for p, o in dstar.move_and_rescan()]
-
+        # print(path)
         # drive gui
         gui.run_game(path=path)
+
+        #new_position = gui.current
+        new_observation = gui.observation
+
+        if new_observation is not None:
+            if new_observation["type"] == OBSTACLE:
+                dstar.gt_global_map.set_obstacle(pos=new_observation["pos"])
+            if new_observation["pos"] == UNOCCUPIED:
+                print("else {}".format(new_observation["pos"]))
+                dstar.gt_global_map.remove_obstacle(pos=new_observation["pos"])
+
+        if gui.current != last_position:
+            last_position = new_position
+            path = [p for p, o in dstar.move_and_rescan(position=gui.current)]

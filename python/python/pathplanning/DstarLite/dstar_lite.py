@@ -11,7 +11,8 @@ class DstarLite(object):
     def __init__(self, world, s_start: (int, int), s_goal: (int, int), view_range=2):
         # init the graphs
         self.est_global_map = OccupancyGridMap(x_dim=world.x_dim,
-                                               y_dim=world.y_dim)
+                                               y_dim=world.y_dim,
+                                               exploration_setting='8N')
 
         # real_graph
         self.gt_global_map: OccupancyGridMap = world
@@ -56,7 +57,8 @@ class DstarLite(object):
         :return:
         """
         g_rhs = min([self.g(node), self.rhs(node)])
-        return g_rhs + heuristic(node, self.position) + self.k_m, g_rhs
+        #return g_rhs + heuristic(node, self.position), g_rhs
+        return g_rhs + self.est_global_map.cost(node, self.position) + self.k_m, g_rhs
 
     def update_vertex(self, node: (int, int)):
         """
@@ -92,7 +94,18 @@ class DstarLite(object):
         :return:
         """
         cost = partial(self.lookahead_cost, node)
-        return min(self.est_global_map.neighbors(node), key=cost)
+        best_choice = min(self.est_global_map.neighbors(node), key=cost)
+        """
+        if len(best_choice) == 0:
+            print("no choice")
+            self.est_global_map.visited = set(self.position)
+            return min(self.est_global_map.neighbors(node), key=cost)
+        """
+        #print("best choice: {}".format(best_choice))
+        #if best_choice not in self.est_global_map.visited:
+            #self.est_global_map.visited.add(best_choice)
+            #best_choice = min(self.est_global_map.neighbors(node), key=cost)
+        return best_choice
 
     def calculate_rhs(self, node: (int, int)) -> float:
         """
@@ -111,9 +124,9 @@ class DstarLite(object):
         last_nodes = deque(maxlen=10)
         s_start = self.position
 
-        while self.U.top_key() < self.calculate_key(s_start) or self.rhs(s_start) != self.g(s_start):
+        while self.U.top_key(s_start) < self.calculate_key(s_start) or self.rhs(s_start) != self.g(s_start):
             u = self.U.pop_top()
-            k_old = self.U.top_key()
+            k_old = self.U.top_key(s_start)
 
             # NOT PART OF ALGORITHM!
             last_nodes.append(u)
@@ -135,13 +148,15 @@ class DstarLite(object):
 
         return self.back_pointers.copy(), self.G_VALS.copy()
 
-    def move_and_rescan(self):
+    def move_and_rescan(self, position: (int, int)):
         """
         Procedure Main()
         :return:
         """
+        self.robot_position = position
+        self.position = position
         # rescan local area
-        local_observation = self.gt_global_map.local_observation(global_position=self.position,
+        local_observation = self.gt_global_map.local_observation(global_position=self.robot_position,
                                                                  view_range=self.view_range)
         # update global map from local data
         # return new obstacles added to the map
@@ -157,25 +172,34 @@ class DstarLite(object):
         yield s_last, cells_with_new_cost
 
         # while we yet haven't reached the goal
+        count = 0
+        self.est_global_map.visited = {(1, 1)}
         while s_start != self.goal:
+            #print("s_start: {}, position: {}".format(s_start, self.robot_position))
             if self.rhs(s_start) == float('inf'):
                 raise Exception("No path found!")
 
             # find next lowest cost neighbor
             s_start = self.lowest_cost_neighbor(s_start)
+            #print("visited: {}".format(self.est_global_map.visited))
+            self.est_global_map.visited.add(s_start)
+
 
             # move to next lowest cost neighbor. This might take a while
             # in real life implementation
             self.position = s_start
 
             # scan graph for changed edge costs
-            local_observation = self.gt_global_map.local_observation(global_position=self.position,
-                                                                     view_range=self.view_range)
+            local_observation = self.est_global_map.local_observation(global_position=self.position,
+                                                                      view_range=self.view_range)
+
+            # FIX NEEDED. This should not return cells_with_new_cost if there not in local view
             cells_with_new_cost = self.est_global_map.update_global_from_local_grid(local_grid=local_observation)
 
             # if any edge cost changed
             if cells_with_new_cost:
-                self.k_m += heuristic(s_last, s_start)  # update heuristics
+                #print("cells with new cost {}".format(cells_with_new_cost))
+                self.k_m += self.est_global_map.cost(s_last, s_start)  # update heuristics
                 s_last = s_start
                 self.update_vertices({node for cell in cells_with_new_cost
                                       for node in self.est_global_map.neighbors(cell)

@@ -28,7 +28,7 @@ class OccupancyGridMap:
         self.occupancy_grid_map = np.zeros(self.map_extents, dtype=np.uint8)
 
         # obstacles
-        self.obstacles = set()
+        self.visited = {}
         self.exploration_setting = exploration_setting
 
     def get_map(self):
@@ -52,8 +52,8 @@ class OccupancyGridMap:
         (x, y) = (round(pos[0]), round(pos[1]))  # make sure pos is int
         (row, col) = (x, y)
 
-        if not self.in_bounds(cell=(x, y)):
-            raise IndexError("Map index out of bounds")
+        # if not self.in_bounds(cell=(x, y)):
+        #    raise IndexError("Map index out of bounds")
 
         return self.occupancy_grid_map[row][col] == UNOCCUPIED
 
@@ -74,12 +74,17 @@ class OccupancyGridMap:
         :param to_node: (x,y)
         :return: the computed cost of moving
         """
-        if from_node is self.obstacles or to_node is self.obstacles:
+        if not self.is_unoccupied(from_node) or not self.is_unoccupied(to_node):
             return float('inf')
         return heuristic(from_node, to_node)
 
-    def filter_neighbors(self, neighbors: List):
-        return [node for node in neighbors if self.is_unoccupied(node) and self.in_bounds(node)]
+    def filter_bounds_and_obstacles(self, neighbors: List):
+        filtered = [node for node in neighbors if self.is_unoccupied(node) and self.in_bounds(node)]
+        return self.not_in_vistited(filtered)
+        #return filtered
+
+    def not_in_vistited(self, neighbors: List):
+        return [node for node in neighbors if node not in self.visited]
 
     def neighbors(self, cell: (int, int)) -> list:
         """
@@ -93,9 +98,12 @@ class OccupancyGridMap:
         else:
             movements = get_movements_8n(x=x, y=y)
 
+        if (x + y) % 2 == 0: movements.reverse()
+
         # filter neighbors
-        movements = self.filter_neighbors(neighbors=movements)
-        return list(movements)
+        filtered_movements = self.filter_bounds_and_obstacles(neighbors=movements)
+        print("mov {}".format(filtered_movements))
+        return list(filtered_movements)
 
     def set_obstacle(self, pos: (int, int)):
         """
@@ -122,14 +130,14 @@ class OccupancyGridMap:
                 if self.is_unoccupied(node):
                     # if not obstacle before, but is now
                     changed_costs.append(node)
-                # add the obstacle
-                self.set_obstacle(node)
+                    # add the obstacle
+                    self.set_obstacle(node)
             else:
                 if not self.is_unoccupied(node):
                     # if obstacle before, but not now
                     changed_costs.append(node)
-                # remove the obstacle
-                self.remove_obstacle(node)
+                    # remove the obstacle
+                    self.remove_obstacle(node)
         return changed_costs
 
     def local_observation(self, global_position: (int, int), view_range: int = 2) -> Dict:

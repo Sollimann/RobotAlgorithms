@@ -38,6 +38,7 @@ class Animation:
         self.y_dim = y_dim
         self.start = start
         self.current = start
+        self.observation = {"pos": None, "type": None}
         self.goal = goal
         self.viewing_range = viewing_range
 
@@ -88,24 +89,48 @@ class Animation:
     def set_start(self, start: (int, int)):
         self.start = start
 
+    def display_path(self, path=None):
+        if path is not None:
+            for step in path:
+                # draw a moving robot, based on current coordinates
+                step_center = [round(step[1] * (self.width + self.margin) + self.width / 2) + self.margin,
+                               round(step[0] * (self.height + self.margin) + self.height / 2) + self.margin]
+
+                # draw robot position as red circle
+                pygame.draw.circle(self.screen, START, step_center, round(self.width / 2) - 2)
+
+    def display_obs(self, observations=None):
+        if observations is not None:
+            for o in observations:
+                pygame.draw.rect(self.screen, GRAY1, [(self.margin + self.width) * o[1] + self.margin,
+                                                      (self.margin + self.height) * o[0] + self.margin,
+                                                      self.width,
+                                                      self.height])
+
     def run_game(self, path=None):
         if path is None:
             path = []
 
-        cont = False
-        time.sleep(1)
+        grid_cell = None
+        self.cont = False
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:  # if user clicked close
                 print("quit")
                 self.done = True  # flag that we are done so we can exit loop
-            elif (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE) or cont:
+
+            elif (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE) or self.cont:
                 # space bar pressed. call next action
-                print(self.world.occupancy_grid_map)
+                if path:
+                    (x, y) = path[1]
+                    self.set_position((x, y))
 
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
                 print("backspace automates the press space")
-                cont = True
+                if not self.cont:
+                    self.cont = True
+                else:
+                    self.cont = False
 
             # set obstacle by holding left-click
             elif pygame.mouse.get_pressed()[0]:
@@ -122,6 +147,7 @@ class Animation:
                 # set the location in the grid map
                 if self.world.is_unoccupied(grid_cell):
                     self.world.set_obstacle(grid_cell)
+                    self.observation = {"pos": grid_cell, "type": OBSTACLE}
 
             # remove obstacle by holding right-click
             elif pygame.mouse.get_pressed()[2]:
@@ -137,7 +163,9 @@ class Animation:
 
                 # set the location in the grid map
                 if not self.world.is_unoccupied(grid_cell):
+                    print("grid cell: ".format(grid_cell))
                     self.world.remove_obstacle(grid_cell)
+                    self.observation = {"pos": grid_cell, "type": UNOCCUPIED}
 
         # set the screen background
         self.screen.fill(BLACK)
@@ -152,6 +180,7 @@ class Animation:
                                   self.width,
                                   self.height])
 
+        self.display_path(path=path)
         # fill in the goal cell with green
         pygame.draw.rect(self.screen, GOAL, [(self.margin + self.width) * self.goal[1] + self.margin,
                                              (self.margin + self.height) * self.goal[0] + self.margin,
@@ -168,10 +197,10 @@ class Animation:
 
         # draw robot local grid map (viewing range)
         pygame.draw.rect(self.screen, LOCAL_GRID,
-                         [robot_center[1] - self.viewing_range * (self.width + self.margin),
-                          robot_center[0] - self.viewing_range * (self.height + self.margin),
-                          2 * self.viewing_range * (self.width + self.margin),
-                          2 * self.viewing_range * (self.height + self.margin)], 2)
+                         [robot_center[0] - self.viewing_range * (self.height + self.margin),
+                          robot_center[1] - self.viewing_range * (self.width + self.margin),
+                          2 * self.viewing_range * (self.height + self.margin),
+                          2 * self.viewing_range * (self.width + self.margin)], 2)
 
         # set game tick
         self.clock.tick(20)
