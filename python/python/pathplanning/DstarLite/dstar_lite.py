@@ -1,6 +1,6 @@
 from collections import deque
 from functools import partial
-from typing import Set
+import heapq
 
 from utils import *
 from priority_queue import PriorityQueue
@@ -34,6 +34,9 @@ class DstarLite(object):
         # keeps track of the best path starting from goal to our position
         self.back_pointers[self.goal] = None
 
+        # replan
+        self.compute_shortest_path(s_start=s_start)
+
     def g(self, node: (int, int)):
         """
         :param node:
@@ -57,7 +60,7 @@ class DstarLite(object):
         :return:
         """
         g_rhs = min([self.g(node), self.rhs(node)])
-        #return g_rhs + heuristic(node, self.position), g_rhs
+        # return g_rhs + heuristic(node, self.position), g_rhs
         return g_rhs + self.est_global_map.cost(node, self.position) + self.k_m, g_rhs
 
     def update_vertex(self, node: (int, int)):
@@ -68,7 +71,10 @@ class DstarLite(object):
         """
         if node != self.goal:
             self.RHS_VALS[node] = self.calculate_rhs(node)
-        self.U.delete(node)
+
+        if node in self.U:
+            self.U.delete(node)
+
         if self.g(node) != self.rhs(node):
             self.U.insert(node, self.calculate_key(node))
 
@@ -95,16 +101,6 @@ class DstarLite(object):
         """
         cost = partial(self.lookahead_cost, node)
         best_choice = min(self.est_global_map.neighbors(node), key=cost)
-        """
-        if len(best_choice) == 0:
-            print("no choice")
-            self.est_global_map.visited = set(self.position)
-            return min(self.est_global_map.neighbors(node), key=cost)
-        """
-        #print("best choice: {}".format(best_choice))
-        #if best_choice not in self.est_global_map.visited:
-            #self.est_global_map.visited.add(best_choice)
-            #best_choice = min(self.est_global_map.neighbors(node), key=cost)
         return best_choice
 
     def calculate_rhs(self, node: (int, int)) -> float:
@@ -116,13 +112,12 @@ class DstarLite(object):
         self.back_pointers[node] = lowest_cost_neighbor
         return self.lookahead_cost(node, lowest_cost_neighbor)
 
-    def compute_shortest_path(self):
+    def compute_shortest_path(self, s_start: (int, int)):
         """
         Procedure ComputeShortestPath()
         :return:
         """
         last_nodes = deque(maxlen=10)
-        s_start = self.position
 
         while self.U.top_key(s_start) < self.calculate_key(s_start) or self.rhs(s_start) != self.g(s_start):
             u = self.U.pop_top()
@@ -162,9 +157,6 @@ class DstarLite(object):
         # return new obstacles added to the map
         cells_with_new_cost = self.est_global_map.update_global_from_local_grid(local_grid=local_observation)
 
-        # replan
-        self.compute_shortest_path()
-
         # make current position as last node
         s_start = self.position
         s_last = s_start
@@ -172,21 +164,15 @@ class DstarLite(object):
         yield s_last, cells_with_new_cost
 
         # while we yet haven't reached the goal
-        count = 0
-        self.est_global_map.visited = {(1, 1)}
+        visited = {s_start}
         while s_start != self.goal:
-            #print("s_start: {}, position: {}".format(s_start, self.robot_position))
+            print("s_start: {}, position: {}".format(s_start, self.robot_position))
             if self.rhs(s_start) == float('inf'):
                 raise Exception("No path found!")
 
             # find next lowest cost neighbor
             s_start = self.lowest_cost_neighbor(s_start)
-            #print("visited: {}".format(self.est_global_map.visited))
-            self.est_global_map.visited.add(s_start)
-
-
             # move to next lowest cost neighbor. This might take a while
-            # in real life implementation
             self.position = s_start
 
             # scan graph for changed edge costs
@@ -198,13 +184,13 @@ class DstarLite(object):
 
             # if any edge cost changed
             if cells_with_new_cost:
-                #print("cells with new cost {}".format(cells_with_new_cost))
+                # print("cells with new cost {}".format(cells_with_new_cost))
                 self.k_m += self.est_global_map.cost(s_last, s_start)  # update heuristics
                 s_last = s_start
                 self.update_vertices({node for cell in cells_with_new_cost
                                       for node in self.est_global_map.neighbors(cell)
                                       if self.est_global_map.is_unoccupied(node)})  # this last line is not needed
-                self.compute_shortest_path()
+                self.compute_shortest_path(s_start=s_start)
             yield s_start, cells_with_new_cost
 
         print("goal found!")

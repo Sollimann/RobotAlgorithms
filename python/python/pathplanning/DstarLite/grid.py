@@ -80,8 +80,8 @@ class OccupancyGridMap:
 
     def filter_bounds_and_obstacles(self, neighbors: List):
         filtered = [node for node in neighbors if self.is_unoccupied(node) and self.in_bounds(node)]
-        return self.not_in_vistited(filtered)
-        #return filtered
+        #self.not_in_vistited(filtered)
+        return filtered
 
     def not_in_vistited(self, neighbors: List):
         return [node for node in neighbors if node not in self.visited]

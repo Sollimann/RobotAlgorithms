@@ -25,7 +25,7 @@ if __name__ == '__main__':
                     y_dim=y_dim,
                     start=start,
                     goal=goal,
-                    viewing_range=6)
+                    viewing_range=5)
 
     ground_truth_world = gui.world
 
@@ -37,7 +37,9 @@ if __name__ == '__main__':
     dstar = DstarLite(world=ground_truth_world,
                       s_start=start,
                       s_goal=goal,
-                      view_range=6)
+                      view_range=5)
+
+    queue = []
     path = [p for p, o in dstar.move_and_rescan(position=new_position)]
 
     while not gui.done:

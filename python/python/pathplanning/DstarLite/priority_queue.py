@@ -31,10 +31,11 @@ class PriorityQueue:
         """
         :return:
         """
-        print(self.queue)
         self.queue.sort()
         if len(self.queue) > 0:
-            return heapq.nsmallest(1, self.queue)[0][0]
+            return self.queue[0][0]
+            #print(new_queue)
+            #return heapq.nsmallest(1, self.queue)[0][0]
         else:
             # print('empty queue!')
             return float('inf'), float('inf')
