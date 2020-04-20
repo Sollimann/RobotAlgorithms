@@ -102,7 +102,7 @@ class OccupancyGridMap:
 
         # filter neighbors
         filtered_movements = self.filter_bounds_and_obstacles(neighbors=movements)
-        print("mov {}".format(filtered_movements))
+        #print("mov {}".format(filtered_movements))
         return list(filtered_movements)
 
     def set_obstacle(self, pos: (int, int)):
