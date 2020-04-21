@@ -1,6 +1,36 @@
-
 import math
 from typing import List
+import numpy as np
+
+'''
+This class used to store data in priority queue.
+Comparing methods are overloaded.
+'''
+
+
+class Element:
+    def __init__(self, key, value1, value2):
+        self.key = key
+        self.value1 = value1
+        self.value2 = value2
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+    def __ne__(self, other):
+        return self.key != other.key
+
+    def __lt__(self, other):
+        return (self.value1, self.value2) < (other.value1, other.value2)
+
+    def __le__(self, other):
+        return (self.value1, self.value2) <= (other.value1, other.value2)
+
+    def __gt__(self, other):
+        return (self.value1, self.value2) > (other.value1, other.value2)
+
+    def __ge__(self, other):
+        return (self.value1, self.value2) >= (other.value1, other.value2)
 
 
 def heuristic(p: (int, int), q: (int, int)) -> float:
@@ -10,20 +40,7 @@ def heuristic(p: (int, int), q: (int, int)) -> float:
     :param q: (x,y)
     :return: manhattan distance
     """
-    dist = math.sqrt((p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2)
-    return dist
-
-
-def reconstruct_path(came_from: (int, int), start: (int, int), goal: (int, int)) -> List:
-    """Reconstruct a shortest path from a dictionary of back-pointers"""
-    current = goal
-    path = [current]
-    while current != start:
-        current = came_from[current]
-        path.append(current)
-    path.append(start)  # optional
-    path.reverse()  # optional
-    return path
+    return math.sqrt((p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2)
 
 
 def get_movements_4n(x: int, y: int) -> List:

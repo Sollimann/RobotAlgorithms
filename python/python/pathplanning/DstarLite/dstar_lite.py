@@ -1,196 +1,144 @@
-from collections import deque
-from functools import partial
 import heapq
-
+import numpy as np
 from utils import *
-from priority_queue import PriorityQueue
+# from priority_queue import PriorityQueue
 from grid import OccupancyGridMap
 
 
 class DstarLite(object):
-    def __init__(self, world, s_start: (int, int), s_goal: (int, int), view_range=2):
-        # init the graphs
-        self.est_global_map = OccupancyGridMap(x_dim=world.x_dim,
-                                               y_dim=world.y_dim,
-                                               exploration_setting='8N')
-
-        # real_graph
-        self.gt_global_map: OccupancyGridMap = world
-
-        # init variables
+    def __init__(self, map, s_start: (int, int), s_goal: (int, int), view_range=2):
         self.view_range = view_range
-        self.position = s_start
-        self.goal = s_goal
-        self.back_pointers = {}
-
-        # procedure initialize
-        self.U = PriorityQueue()
+        self.s_start = s_start
+        self.s_goal = s_goal
         self.k_m = 0
-        self.RHS_VALS = {}
-        self.G_VALS = {}  # empty set
-        self.RHS_VALS[s_goal] = 0.0
-        self.U.insert(s_goal, self.calculate_key(s_goal))
+        self.rhs = np.ones((map.x_dim, map.y_dim)) * np.inf
+        self.g = self.rhs.copy()
+        self.global_map = map
+        self.sensed_map = OccupancyGridMap(x_dim=map.x_dim,
+                                           y_dim=map.y_dim,
+                                           exploration_setting='8N')
+        self.rhs[self.s_goal] = 0
+        self.U = []
+        A = Element(self.s_goal, *self.calculate_key(self.s_goal))
+        heapq.heappush(self.U, A)
 
-        # keeps track of the best path starting from goal to our position
-        self.back_pointers[self.goal] = None
-
-        # replan
-        self.compute_shortest_path(s_start=s_start)
-
-    def g(self, node: (int, int)):
+    def c(self, u: (int, int), v: (int, int)) -> float:
         """
-        :param node:
+        calcuclate the cost between nodes
+        :param u:
+        :param v:
         :return:
         """
-        return self.G_VALS.get(node, float('inf'))
+        if not self.sensed_map.is_unoccupied(u) or not self.sensed_map.is_unoccupied(v):
+            return float('inf')
+        else:
+            return heuristic(u, v)
 
-    def rhs(self, node: (int, int)):
-        """
-        :param node:
-        :return:
-        """
-        # if node == self.position:
-        #    return 0
-        return self.RHS_VALS.get(node, float('inf')) if node != self.goal else 0
+    def calculate_key(self, s: (int, int)):
+        k1 = min(self.g[s], self.rhs[s]) + heuristic(self.s_start, s) + self.k_m
+        k2 = min(self.g[s], self.rhs[s])
+        return k1, k2
 
-    def calculate_key(self, node: (int, int)):
-        """
-        procedure CalculateKey(s)
-        :param node:
-        :return:
-        """
-        g_rhs = min([self.g(node), self.rhs(node)])
-        # return g_rhs + heuristic(node, self.position), g_rhs
-        return g_rhs + self.est_global_map.cost(node, self.position) + self.k_m, g_rhs
+    def update_vertex(self, u):
+        if u != self.s_goal:
+            succ = self.sensed_map.succ(cell=u)
+            min_s = float('inf')
+            for s in succ:
+                if self.c(u, s) + self.g[s] < min_s:
+                    min_s = self.c(u, s) + self.g[s]
+            self.rhs[u] = min_s
+        if Element(u, 0, 0) in self.U:
+            self.U.remove(Element(u, 0, 0))
+            heapq.heapify(self.U)
+        if self.g[u] != self.rhs[u]:
+            heapq.heappush(self.U, Element(u, *self.calculate_key(u)))
 
-    def update_vertex(self, node: (int, int)):
-        """
-        procedure UpdateVertex(u)
-        :param node:
-        :return:
-        """
-        if node != self.goal:
-            self.RHS_VALS[node] = self.calculate_rhs(node)
+    def compute_shortest_path(self):
+        # should fix here. not right algorithm
+        while heapq.nsmallest(1, self.U)[0] < Element(self.s_start, *self.calculate_key(self.s_start))\
+                or self.rhs[self.s_start] != self.g[self.s_start]:
 
-        if node in self.U:
-            self.U.delete(node)
-
-        if self.g(node) != self.rhs(node):
-            self.U.insert(node, self.calculate_key(node))
-
-    def update_vertices(self, nodes):
-        """
-        :param nodes:
-        :return:
-        """
-        for node in nodes:
-            self.update_vertex(node=node)
-
-    def lookahead_cost(self, node, neighbor):
-        """
-        :param node:
-        :param neighbor:
-        :return:
-        """
-        return self.g(neighbor) + self.est_global_map.cost(neighbor, node)
-
-    def lowest_cost_neighbor(self, node: (int, int)) -> (int, int):
-        """
-        :param node:
-        :return:
-        """
-        cost = partial(self.lookahead_cost, node)
-        best_choice = min(self.est_global_map.neighbors(node), key=cost)
-        return best_choice
-
-    def calculate_rhs(self, node: (int, int)) -> float:
-        """
-        :param node:
-        :return:
-        """
-        lowest_cost_neighbor = self.lowest_cost_neighbor(node)
-        self.back_pointers[node] = lowest_cost_neighbor
-        return self.lookahead_cost(node, lowest_cost_neighbor)
-
-    def compute_shortest_path(self, s_start: (int, int)):
-        """
-        Procedure ComputeShortestPath()
-        :return:
-        """
-        last_nodes = deque(maxlen=10)
-
-        while self.U.top_key(s_start) < self.calculate_key(s_start) or self.rhs(s_start) != self.g(s_start):
-            u = self.U.pop_top()
-            k_old = self.U.top_key(s_start)
-
-            # NOT PART OF ALGORITHM!
-            last_nodes.append(u)
-            if len(last_nodes) == 10 and len(set(last_nodes)) < 3:
-                raise Exception("Failed! Stuck in a loop")
-            # NOT PART OF ALGORITHM!
-
-            k_new = self.calculate_key(u)
+            k_old = heapq.nsmallest(1, self.U)[0]
+            u = heapq.heappop(self.U).key
+            k_new = Element(u, *self.calculate_key(u))
             if k_old < k_new:
-                self.U.insert(u, k_new)  # Essentially update, since u is already popped, and we put it back again
-            elif self.g(node=u) > self.rhs(node=u):
-                self.G_VALS[u] = self.rhs(node=u)
-
-                # since u is already removed, we update vertices
-                self.update_vertices(nodes=self.est_global_map.neighbors(u))
+                heapq.heappush(self.U, k_new)
+            elif self.g[u] > self.rhs[u]:
+                self.g[u] = self.rhs[u]
+                pred = self.sensed_map.succ(cell=u)
+                for s in pred:
+                    self.update_vertex(s)
             else:
-                self.G_VALS[u] = float('inf')
-                self.update_vertices(nodes=self.est_global_map.neighbors(u) + [u])  # list + list = list
+                self.g[u] = float('inf')
+                pred = self.sensed_map.succ(cell=u)
+                pred.append(u)
+                for s in pred:
+                    self.update_vertex(s)
 
-        return self.back_pointers.copy(), self.G_VALS.copy()
+    def rescan(self, global_position: (int, int), gt: bool):
 
-    def move_and_rescan(self, position: (int, int)):
-        """
-        Procedure Main()
-        :return:
-        """
-        self.robot_position = position
-        self.position = position
-        # rescan local area
-        local_observation = self.gt_global_map.local_observation(global_position=self.robot_position,
-                                                                 view_range=self.view_range)
+        if gt:
+            # rescan local area
+            local_observation = self.global_map.local_observation(global_position=global_position,
+                                                                  view_range=self.view_range)
+        else:
+            # rescan local area
+            local_observation = self.sensed_map.local_observation(global_position=global_position,
+                                                                  view_range=self.view_range)
+
+        #for key, value in local_observation.items():
+        #    if value == 255:
+        #        print(key)
         # update global map from local data
         # return new obstacles added to the map
-        cells_with_new_cost = self.est_global_map.update_global_from_local_grid(local_grid=local_observation)
+        cells_with_new_cost = self.sensed_map.update_global_from_local_grid(local_grid=local_observation)
+        #print("cells with new cost: {}".format(cells_with_new_cost))
+        return cells_with_new_cost
 
-        # make current position as last node
-        s_start = self.position
-        s_last = s_start
+    def move_and_replan(self, robot_position: (int, int)):
+        path = [robot_position]
+        self.s_start = robot_position
+        s_last = self.s_start
+        #print("move")
+        # rescan
+        self.rescan(global_position=self.s_start, gt=True)
 
-        yield s_last, cells_with_new_cost
+        # recompute path
+        self.compute_shortest_path()
 
-        # while we yet haven't reached the goal
-        visited = {s_start}
-        while s_start != self.goal:
-            print("s_start: {}, position: {}".format(s_start, self.robot_position))
-            if self.rhs(s_start) == float('inf'):
+        count = 0
+        visited = {self}
+        while self.s_start != self.s_goal:
+            if self.g[self.s_start] == float('inf'):
+                print(self.g)
                 raise Exception("No path found!")
+            count += 1
+            #print("while")
+            succ = self.sensed_map.succ(cell=self.s_start)
+            min_s = float('inf')
+            for s in succ:
+                if self.c(self.s_start, s) + self.g[s] < min_s:
+                    min_s = self.c(self.s_start, s) + self.g[s]
+                    temp = s
+            # move to next
+            #print("s_start: {}".format(self.s_start))
+            self.s_start = temp
+            path.append(self.s_start)
+            print(count)
 
-            # find next lowest cost neighbor
-            s_start = self.lowest_cost_neighbor(s_start)
-            # move to next lowest cost neighbor. This might take a while
-            self.position = s_start
+            # scan graph for changed costs
+            cells_with_new_cost = self.rescan(global_position=self.s_start, gt=False)
 
-            # scan graph for changed edge costs
-            local_observation = self.est_global_map.local_observation(global_position=self.position,
-                                                                      view_range=self.view_range)
-
-            # FIX NEEDED. This should not return cells_with_new_cost if there not in local view
-            cells_with_new_cost = self.est_global_map.update_global_from_local_grid(local_grid=local_observation)
-
-            # if any edge cost changed
+            # if any edge costs changed
             if cells_with_new_cost:
-                # print("cells with new cost {}".format(cells_with_new_cost))
-                self.k_m += self.est_global_map.cost(s_last, s_start)  # update heuristics
-                s_last = s_start
-                self.update_vertices({node for cell in cells_with_new_cost
-                                      for node in self.est_global_map.neighbors(cell)
-                                      if self.est_global_map.is_unoccupied(node)})  # this last line is not needed
-                self.compute_shortest_path(s_start=s_start)
-            yield s_start, cells_with_new_cost
+                self.k_m += heuristic(s_last, self.s_start)
+                s_last = self.s_start
+                for c in cells_with_new_cost:
+                    succ = self.sensed_map.succ(c)
+                    for u in succ:
+                        if self.sensed_map.is_unoccupied(u):
+                            self.update_vertex(u)
+                self.compute_shortest_path()
 
-        print("goal found!")
+        print("path found!")
+        return path, self.sensed_map.occupancy_grid_map

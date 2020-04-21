@@ -1,5 +1,5 @@
 from gui import *
-from dstar_lite import *
+from dstar_lite import DstarLite
 from grid import *
 
 if __name__ == '__main__':
@@ -16,6 +16,7 @@ if __name__ == '__main__':
     y_dim = 80
     start = (10, 10)
     goal = (20, 70)
+    view_range = 5
 
     gui = Animation(title="D* Lite Path Planning",
                     width=10,
@@ -25,7 +26,7 @@ if __name__ == '__main__':
                     y_dim=y_dim,
                     start=start,
                     goal=goal,
-                    viewing_range=5)
+                    viewing_range=view_range)
 
     ground_truth_world = gui.world
 
@@ -34,13 +35,12 @@ if __name__ == '__main__':
     new_observation = None
     type = OBSTACLE
 
-    dstar = DstarLite(world=ground_truth_world,
+    dstar = DstarLite(map=ground_truth_world,
                       s_start=start,
                       s_goal=goal,
-                      view_range=5)
+                      view_range=view_range)
 
-    queue = []
-    path = [p for p, o in dstar.move_and_rescan(position=new_position)]
+    path, sensed_map = dstar.move_and_replan(robot_position=new_position)
 
     while not gui.done:
         # update the map
@@ -48,16 +48,16 @@ if __name__ == '__main__':
         # drive gui
         gui.run_game(path=path)
 
-        #new_position = gui.current
+        new_position = gui.current
         new_observation = gui.observation
 
         if new_observation is not None:
             if new_observation["type"] == OBSTACLE:
-                dstar.gt_global_map.set_obstacle(pos=new_observation["pos"])
+                dstar.global_map.set_obstacle(pos=new_observation["pos"])
             if new_observation["pos"] == UNOCCUPIED:
                 print("else {}".format(new_observation["pos"]))
-                dstar.gt_global_map.remove_obstacle(pos=new_observation["pos"])
+                dstar.global_map.remove_obstacle(pos=new_observation["pos"])
 
-        if gui.current != last_position:
+        if new_position != last_position:
             last_position = new_position
-            path = [p for p, o in dstar.move_and_rescan(position=gui.current)]
+            path, sensed_map = dstar.move_and_replan(robot_position=new_position)
