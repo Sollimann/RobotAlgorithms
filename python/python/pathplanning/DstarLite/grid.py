@@ -123,7 +123,7 @@ class OccupancyGridMap:
                     self.remove_obstacle(node)
         return changed_costs
 
-    def local_observation(self, global_position: (int, int), view_range: int) -> Dict:
+    def local_observation(self, global_position: (int, int), view_range: int = 2) -> Dict:
         """
         :param global_position:
         :param view_range:

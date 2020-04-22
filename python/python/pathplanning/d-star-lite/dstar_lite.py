@@ -122,7 +122,7 @@ class Dstar_lite:
 
             # if any edge costs changed
             if cells_with_new_cost:
-                self.k_m += self.k_m + heuristic(s_last, self.s_start)
+                self.k_m += heuristic(s_last, self.s_start)
                 s_last = self.s_start
                 for u in cells_with_new_cost:
                     self.update_vertex(u=u)

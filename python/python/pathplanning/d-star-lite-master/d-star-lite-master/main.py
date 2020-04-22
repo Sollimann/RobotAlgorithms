@@ -23,15 +23,11 @@ colors = {
 }
 
 # This sets the WIDTH and HEIGHT of each grid location
-WIDTH = 10
-HEIGHT = 10
+WIDTH = 40
+HEIGHT = 40
 
 # This sets the margin between each cell
-MARGIN = 0
-
-X_DIM = 50
-Y_DIM = 50
-VIEWING_RANGE = 3
+MARGIN = 5
 
 # Create a 2 dimensional array. A two dimensional
 # array is simply a list of lists.
@@ -50,6 +46,10 @@ grid[1][5] = 1
 # Initialize pygame
 pygame.init()
 
+X_DIM = 12
+Y_DIM = 12
+VIEWING_RANGE = 3
+
 
 # Set the HEIGHT and WIDTH of the screen
 WINDOW_SIZE = [(WIDTH + MARGIN) * X_DIM + MARGIN,
@@ -65,14 +65,10 @@ done = False
 # Used to manage how fast the screen updates
 clock = pygame.time.Clock()
 
-class typeB():
-	type = 10
-	key = 10
-	
 if __name__ == "__main__":
     graph = GridWorld(X_DIM, Y_DIM)
-    s_start = 'x1y1'
-    s_goal = 'x30y40'
+    s_start = 'x1y2'
+    s_goal = 'x5y4'
     goal_coords = stateNameToCoords(s_goal)
 
     graph.setStart(s_start)
@@ -89,39 +85,32 @@ if __name__ == "__main__":
     basicfont = pygame.font.SysFont('Comic Sans MS', 36)
 
     # -------- Main Program Loop -----------
-    cont = False
     while not done:
-        event = pygame.event.get()  # User did something
-        if not event:
-            event = typeB()
-        else:
-            event = event[0]
-            #print event.type
-        if event.type == pygame.QUIT:  # If user clicked close
-            done = True  # Flag that we are done so we exit this loop
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE or cont:
-            # print('space bar! call next action')
-            s_new, k_m = moveAndRescan(
-                graph, queue, s_current, VIEWING_RANGE, k_m)
-            if s_new == 'goal':
-                print('Goal Reached!')
-                done = True
-            else:
-                # print('setting s_current to ', s_new)
-                s_current = s_new
-                pos_coords = stateNameToCoords(s_current)
-                # print('got pos coords: ', pos_coords)
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
-            cont = True
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            # User clicks the mouse. Get the position
-            pos = pygame.mouse.get_pos()
-            # Change the x/y screen coordinates to grid coordinates
-            column = pos[0] // (WIDTH + MARGIN)
-            row = pos[1] // (HEIGHT + MARGIN)
-            # Set that location to one
-            if(graph.cells[row][column] == 0):
-                graph.cells[row][column] = -1
+        for event in pygame.event.get():  # User did something
+            if event.type == pygame.QUIT:  # If user clicked close
+                done = True  # Flag that we are done so we exit this loop
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                # print('space bar! call next action')
+                s_new, k_m = moveAndRescan(
+                    graph, queue, s_current, VIEWING_RANGE, k_m)
+                if s_new == 'goal':
+                    print('Goal Reached!')
+                    done = True
+                else:
+                    # print('setting s_current to ', s_new)
+                    s_current = s_new
+                    pos_coords = stateNameToCoords(s_current)
+                    # print('got pos coords: ', pos_coords)
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # User clicks the mouse. Get the position
+                pos = pygame.mouse.get_pos()
+                # Change the x/y screen coordinates to grid coordinates
+                column = pos[0] // (WIDTH + MARGIN)
+                row = pos[1] // (HEIGHT + MARGIN)
+                # Set that location to one
+                if(graph.cells[row][column] == 0):
+                    graph.cells[row][column] = -1
 
         # Set the screen background
         screen.fill(BLACK)
@@ -135,7 +124,6 @@ if __name__ == "__main__":
                 pygame.draw.rect(screen, colors[graph.cells[row][column]],
                                  [(MARGIN + WIDTH) * column + MARGIN,
                                   (MARGIN + HEIGHT) * row + MARGIN, WIDTH, HEIGHT])
-                '''				  
                 node_name = 'x' + str(column) + 'y' + str(row)
                 if(graph.graph[node_name].g != float('inf')):
                     # text = basicfont.render(
@@ -149,7 +137,7 @@ if __name__ == "__main__":
                     textrect.centery = int(
                         row * (HEIGHT + MARGIN) + HEIGHT / 2) + MARGIN
                     screen.blit(text, textrect)
-                '''
+
         # fill in goal cell with GREEN
         pygame.draw.rect(screen, GREEN, [(MARGIN + WIDTH) * goal_coords[0] + MARGIN,
                                          (MARGIN + HEIGHT) * goal_coords[1] + MARGIN, WIDTH, HEIGHT])
