@@ -2,10 +2,11 @@
 # in the world coordinate system.
 # Write the result to a file which contains all cylinders, for all scans.
 # 04_a_project_landmarks
-# Claus Brenner, 14 NOV 2012
+
 from lego_robot import *
-from slam_b_library import filter_step, compute_derivative,\
-     find_cylinders, compute_cartesian_coordinates
+from slam_b_library import filter_step, compute_derivative, \
+    find_cylinders, compute_cartesian_coordinates
+
 
 # Put all cylinder extraction and position finding into one function.
 def compute_scanner_cylinders(scan, jump, min_dist, cylinder_offset):
@@ -14,14 +15,14 @@ def compute_scanner_cylinders(scan, jump, min_dist, cylinder_offset):
     scanner_cylinders = compute_cartesian_coordinates(cylinders, cylinder_offset)
     return scanner_cylinders
 
+
 # Utility to write a list of cylinders to (one line of) a given file.
 # Line header defines the start of each line, e.g. "D C" for a detected
 # cylinder or "W C" for a world cylinder.
 def write_cylinders(file_desc, line_header, cylinder_list):
-    print >> file_desc, line_header,
-    for c in cylinder_list:
-        print >> file_desc, "%.1f %.1f" % c,
-    print >> file_desc
+    output = line_header+' '+' '.join("%.1f %.1f" % c for c in cylinder_list)
+    file_desc.write(output + '\n')
+
 
 if __name__ == '__main__':
     # The constants we used for the filter_step.
@@ -43,8 +44,8 @@ if __name__ == '__main__':
     logfile.read("robot4_scan.txt")
 
     # Iterate over all positions.
-    out_file = file("project_landmarks.txt", "w")
-    for i in xrange(len(logfile.scan_data)):
+    out_file = open("project_landmarks.txt", "w")
+    for i in range(len(logfile.scan_data)):
         # Compute the new pose.
         pose = filter_step(pose, logfile.motor_ticks[i],
                            ticks_to_mm, robot_width,
@@ -59,7 +60,7 @@ if __name__ == '__main__':
 
         # Write results to file.
         # The pose.
-        print >> out_file, "F %f %f %f" % pose
+        print("F %f %f %f" % pose, file=out_file)
         # The detected cylinders in the scanner's coordinate system.
         write_cylinders(out_file, "D C", cartesian_cylinders)
         # The detected cylinders in the world coordinate system.
